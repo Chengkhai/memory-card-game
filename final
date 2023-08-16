@@ -1,0 +1,111 @@
+import random
+import time
+import os
+
+# Constants
+CARD_VALUES = []
+for i in range (100): 
+    CARD_VALUES.append(str(chr(random.randint(1000, 2000))))
+CARD_VALUES = "".join(CARD_VALUES)
+
+def generate_board(size): # Determine board size
+    cards_needed = size * size // 2
+    if cards_needed > len(CARD_VALUES):
+        print("Board size too large. Maximum board size is {}x{}.".format(len(CARD_VALUES), len(CARD_VALUES)))
+        return None
+
+    cards = random.sample(CARD_VALUES, cards_needed)
+    cards = cards + cards
+    random.shuffle(cards)
+    return [cards[i:i + size] for i in range(0, len(cards), size)]
+
+def display_board(board, flipped): # For clearing previous inputs
+    os.system("clear" if os.name == "posix" else "cls")  # Clear the console screen
+    print("MEMORY CARD GAME\n")
+    print("  " + " ".join(str(i) for i in range(1, len(board[0]) + 1)))
+    print("  " + "-" * (len(board[0]) * 2 - 1))
+    for i, row in enumerate(board):
+        display_row = [card if flipped[i][j] else "▇" for j, card in enumerate(row)]
+        print(str(i + 1) + "|" + "|".join(display_row) + "|")
+
+def get_card_choice(size): # Getting row and column inputs
+    while True:
+        try:
+            row_column = input("\nChoose a row/column no. (1 to {}): ".format(size))
+            while "/" not in row_column:
+                print("Invalid input. Try again.")
+                row_column = input("\nChoose a row/column no. (1 to {}): ".format(size))
+            row = int(row_column.split("/")[0])
+            column = int(row_column.split("/")[1])
+            if 1 <= row <= size and 1 <= column <= size:
+                return row - 1, column - 1
+            else:
+                print("Invalid input. Try again.")
+        except ValueError:
+            print("Invalid input. Try again.")
+
+def quiting_game(): # Option to end game halfway
+    leave_option = input("End game? ")
+    if leave_option.lower == "yes":
+        return True
+    
+
+def is_game_over(flipped): 
+    return all(all(card for card in row) for row in flipped)
+
+def play_game(size):
+    board = generate_board(size)
+    if not board:
+        return
+
+    flipped = [[False for _ in range(size)] for _ in range(size)]
+    pairs_found = 0
+    max_pairs = size * size // 2
+
+    while pairs_found < max_pairs:
+        display_board(board, flipped)
+
+        # Input validity check 1
+        card1_row, card1_column = get_card_choice(size)
+        while flipped[card1_row][card1_column]:
+            print("This card is already flipped. Choose again.")
+            card1_row, card1_column = get_card_choice(size)
+
+        flipped[card1_row][card1_column] = True
+        display_board(board, flipped)
+
+        # Input validity check 2
+        card2_row, card2_column = get_card_choice(size) 
+        while card1_row == card2_row and card1_column == card2_column or flipped[card2_row][card2_column]:
+            print("Invalid choice. Choose again.")
+            card2_row, card2_column = get_card_choice(size)
+
+        flipped[card2_row][card2_column] = True
+        display_board(board, flipped)
+
+        if board[card1_row][card1_column] == board[card2_row][card2_column]:
+            print("Match!")
+            pairs_found += 1
+            if quiting_game() == True:
+                break
+        else:
+            print("No match. Try again.")
+            time.sleep(2)
+            flipped[card1_row][card1_column] = False
+            flipped[card2_row][card2_column] = False
+
+
+    print("Congratulations! You found all pairs in {} moves.".format(pairs_found * 2))
+
+def main():
+    board_size = 2
+
+    while True: # Option to increase difficulty, increase board size
+        play_game(board_size)
+        play_again = input("Do you want to play again? (yes/no): ")
+        if play_again.lower() != 'yes':
+            break
+        board_size += 1
+
+if __name__ == "__main__":
+    main()
